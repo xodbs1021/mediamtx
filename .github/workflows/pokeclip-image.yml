@@ -1,0 +1,57 @@
+# Builds and publishes the PokeClip downstream image.
+#
+# Triggered by any tag matching *-pokeclip.* (e.g. v1.20.1-pokeclip.1).
+# The resulting image is pinned by digest in the product Dockerfile —
+# the digest is printed in the run summary.
+
+name: pokeclip-image
+
+on:
+  push:
+    tags:
+      - "*-pokeclip.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # versiongetter runs `git describe --tags`
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/pokeclip.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          provenance: false
+
+      - name: pin coordinates
+        run: |
+          {
+            echo "### PokeClip image published"
+            echo
+            echo '```'
+            echo "FROM ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}"
+            echo '```'
+            echo
+            echo "- tag: \`${{ github.ref_name }}\`"
+            echo "- commit: \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

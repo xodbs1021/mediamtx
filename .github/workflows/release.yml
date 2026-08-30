@@ -1,9 +1,9 @@
 name: release
 
+# PokeClip downstream: upstream publishing is manual-only here
+# (no DockerHub secrets in this fork, and our tags must not cut upstream releases).
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 permissions:
   id-token: write

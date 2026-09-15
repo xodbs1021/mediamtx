@@ -44,6 +44,7 @@ func OnConnect(params OnConnectParams) func() {
 			OnExit: func(err error) {
 				params.Logger.Log(logger.Info, "runOnConnect command exited: %v", err)
 			},
+			OutputLogger: params.Logger,
 		}
 		onConnectCmd.Start()
 	}
@@ -64,6 +65,7 @@ func OnConnect(params OnConnectParams) func() {
 				OnExit: func(err error) {
 					params.Logger.Log(logger.Info, "runOnDisconnect command exited: %v", err)
 				},
+				OutputLogger: params.Logger,
 			}
 			cmd.Start()
 		}

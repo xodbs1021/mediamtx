@@ -38,6 +38,7 @@ func OnDemand(params OnDemandParams) func(string) {
 			OnExit: func(err error) {
 				params.Logger.Log(logger.Info, "runOnDemand command exited: %v", err)
 			},
+			OutputLogger: params.Logger,
 		}
 		onDemandCmd.Start()
 	}
@@ -58,6 +59,7 @@ func OnDemand(params OnDemandParams) func(string) {
 				OnExit: func(err error) {
 					params.Logger.Log(logger.Info, "runOnUnDemand command exited: %v", err)
 				},
+				OutputLogger: params.Logger,
 			}
 			cmd.Start()
 		}

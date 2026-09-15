@@ -140,6 +140,45 @@ func TestCoreHotReloading(t *testing.T) {
 	}()
 }
 
+func TestCoreHotReloadingLogHookOutput(t *testing.T) {
+	confPath := filepath.Join(t.TempDir(), "rtsp-conf")
+
+	// all servers are disabled, since the test only needs the configuration
+	// reload and the pool flag.
+	//
+	// the enabled value is the one loaded at startup, so that the initial
+	// assertion cannot be satisfied by the zero value of the flag.
+	err := os.WriteFile(confPath, []byte("logHookOutput: yes\n"+
+		"rtsp: no\n"+
+		"rtmp: no\n"+
+		"hls: no\n"+
+		"webrtc: no\n"+
+		"srt: no\n"+
+		"moq: no\n"),
+		0o644)
+	require.NoError(t, err)
+
+	p, ok := New([]string{confPath})
+	require.Equal(t, true, ok)
+	defer p.Close()
+
+	require.Equal(t, true, p.externalCmdPool.LogOutput.Load())
+
+	err = os.WriteFile(confPath, []byte("logHookOutput: no\n"+
+		"rtsp: no\n"+
+		"rtmp: no\n"+
+		"hls: no\n"+
+		"webrtc: no\n"+
+		"srt: no\n"+
+		"moq: no\n"),
+		0o644)
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		return !p.externalCmdPool.LogOutput.Load()
+	}, 5*time.Second, 100*time.Millisecond)
+}
+
 func TestCoreHotReloadingAndLoggerError(t *testing.T) {
 	confPath := filepath.Join(t.TempDir(), "rtsp-conf")
 

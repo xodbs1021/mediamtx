@@ -544,6 +544,8 @@ func (p *Core) createResources(initial bool) error {
 		p.externalCmdPool.Initialize()
 	}
 
+	p.externalCmdPool.LogOutput.Store(currentConf.LogHookOutput)
+
 	if p.authManager == nil {
 		p.authManager = &auth.Manager{
 			Method:             currentConf.AuthMethod,

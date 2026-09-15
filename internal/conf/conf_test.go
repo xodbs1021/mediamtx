@@ -1180,3 +1180,15 @@ func TestConfDefaultsAreNotShared(t *testing.T) {
 	require.Equal(t, Credential("any"), defaultAuthInternalUsers[0].User)
 	require.Equal(t, "", defaultAuthInternalUsers[0].Permissions[0].Path)
 }
+
+func TestConfLogHookOutput(t *testing.T) {
+	conf1, _, err := Load("", nil, nil)
+	require.NoError(t, err)
+	require.Equal(t, false, conf1.LogHookOutput)
+
+	tmpf := createTempFile(t, []byte("logHookOutput: true\n"))
+
+	conf2, _, err := Load(tmpf, nil, nil)
+	require.NoError(t, err)
+	require.Equal(t, true, conf2.LogHookOutput)
+}

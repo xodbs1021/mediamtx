@@ -62,6 +62,20 @@ Obtaining:
 {"timestamp":"20XX-YY-ZZT10:45:05.999999999+01:00","level":"INF","message":"[SRT] listener opened on :8890 (UDP)"}
 ```
 
+## Hook output
+
+The output of [hooks](20-hooks.md) is inherited from the standard streams of the server, therefore it doesn't follow `logLevel`, `logDestinations` and `logStructured`. It can be routed to the server log with the `logHookOutput` parameter:
+
+```yml
+# Route the output of hooks (runOnInit, runOnDemand, ...) to the server log,
+# instead of letting it inherit the standard streams of the server.
+logHookOutput: true
+```
+
+Standard output and standard error are merged and logged at info level, one entry per line; a line longer than 4096 bytes is split into several entries, and empty lines are skipped. Both streams share a single pipe, so output written to them at the same time can interleave. A change of this parameter at runtime applies to hooks started after the change; hooks already running keep their current routing.
+
+When this is enabled, after a hook exits the server waits up to 1 second for the output that is still in transit, and discards whatever is left after that. Output can therefore be truncated in two cases: when the hook leaves background processes behind (`sh -c '... &'`), that keep the output pipes open, and when the log destinations are slower than the output the hook produced - in the latter case the tail of the output of a hook that behaved correctly can be lost too. When the limit expires the output pipes are closed: a background process that keeps writing to them fails on its next write (with `SIGPIPE` or `EPIPE` on POSIX systems, where the default action terminates it), while with `logHookOutput` disabled it would keep writing to the inherited standard streams of the server. The limit doesn't apply to a log write that is already in progress: such a write is never interrupted and can take longer than the limit itself.
+
 ## Log file rotation
 
 The log file can be periodically rotated or truncated by using an external utility.

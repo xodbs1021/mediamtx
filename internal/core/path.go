@@ -1050,6 +1050,7 @@ func (pa *path) startRecording() {
 					OnExit: func(err error) {
 						pa.Log(logger.Info, "runOnRecordSegmentCreate command exited: %v", err)
 					},
+					OutputLogger: pa,
 				}
 				cmd.Start()
 			}
@@ -1069,6 +1070,7 @@ func (pa *path) startRecording() {
 					OnExit: func(err error) {
 						pa.Log(logger.Info, "runOnRecordSegmentComplete command exited: %v", err)
 					},
+					OutputLogger: pa,
 				}
 				cmd.Start()
 			}

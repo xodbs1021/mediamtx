@@ -43,6 +43,7 @@ func OnOnline(params OnOnlineParams) func() {
 			OnExit: func(err error) {
 				params.Logger.Log(logger.Info, "runOnOnline command exited: %v", err)
 			},
+			OutputLogger: params.Logger,
 		}
 		onOnlineCmd.Start()
 	}
@@ -65,6 +66,7 @@ func OnOnline(params OnOnlineParams) func() {
 				OnExit: func(err error) {
 					params.Logger.Log(logger.Info, "runOnOffline command exited: %v", err)
 				},
+				OutputLogger: params.Logger,
 			}
 			cmd.Start()
 		}

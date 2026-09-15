@@ -42,6 +42,7 @@ func OnRead(params OnReadParams) func() {
 			OnExit: func(err error) {
 				params.Logger.Log(logger.Info, "runOnRead command exited: %v", err)
 			},
+			OutputLogger: params.Logger,
 		}
 		onReadCmd.Start()
 	}
@@ -62,6 +63,7 @@ func OnRead(params OnReadParams) func() {
 				OnExit: func(err error) {
 					params.Logger.Log(logger.Info, "runOnUnread command exited: %v", err)
 				},
+				OutputLogger: params.Logger,
 			}
 			cmd.Start()
 		}

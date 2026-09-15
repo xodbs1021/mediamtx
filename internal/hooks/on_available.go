@@ -43,6 +43,7 @@ func OnAvailable(params OnAvailableParams) func() {
 			OnExit: func(err error) {
 				params.Logger.Log(logger.Info, "runOnAvailable command exited: %v", err)
 			},
+			OutputLogger: params.Logger,
 		}
 		onAvailableCmd.Start()
 	}
@@ -63,6 +64,7 @@ func OnAvailable(params OnAvailableParams) func() {
 				OnExit: func(err error) {
 					params.Logger.Log(logger.Info, "runOnUnavailable command exited: %v", err)
 				},
+				OutputLogger: params.Logger,
 			}
 			cmd.Start()
 		}

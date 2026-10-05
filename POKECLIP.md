@@ -2,21 +2,25 @@
 
 This is a fork of [bluenviron/mediamtx](https://github.com/bluenviron/mediamtx) that carries
 patches we need before upstream has merged them. It is a **waiting room, not a permanent divergence**:
-every patch here has an upstream PR attached and is dropped from this line once that PR lands.
+every patch here either has an upstream PR or has not been submitted yet, and
+is dropped from this line once upstream merges it.
 
 ## Branches
 
-| Branch | Purpose |
-|---|---|
-| `main` | Mirror of upstream. **Never commit here** — it stays fast-forwardable from upstream. |
-| `pokeclip` | Our line: upstream + patches not yet merged + the image workflow. Images are cut from here. |
+| Branch         | Purpose                                                                                        |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `main`         | Mirror of upstream. **Never commit here** — it stays fast-forwardable from upstream.           |
+| `pokeclip`     | Our line: upstream + patches not yet merged + the image workflow. Images are cut from here.    |
 | topic branches | Clean, upstream-submittable versions of individual patches (e.g. `always-available-recorded`). |
 
 ## What's currently in the line
 
-| Patch | Upstream |
-|---|---|
-| `alwaysAvailableRecorded` — don't record while the offline substream (standby slate) is playing, plus fixes for two static-source gaps in it | [PR #5767](https://github.com/bluenviron/mediamtx/pull/5767) (open) — rebased onto current main, with regression tests |
+| Patch                                                                                     | Upstream                                                                            |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| fix data race between configuration reload and hook logging                               | [bluenviron/mediamtx#6206](https://github.com/bluenviron/mediamtx/pull/6206) (open) |
+| log the failure of every hook command                                                     | [bluenviron/mediamtx#6259](https://github.com/bluenviron/mediamtx/pull/6259) (open) |
+| route the output of hooks to the server log (new setting `logHookOutput`, off by default) | not submitted yet                                                                   |
+| make CertLoader.Close() wait for watch() to return                                        | [bluenviron/mediamtx#6261](https://github.com/bluenviron/mediamtx/pull/6261) (open) |
 
 ## Releasing an image
 

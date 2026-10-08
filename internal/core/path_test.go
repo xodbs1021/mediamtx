@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -267,6 +268,58 @@ func TestPathRunOnConnect(t *testing.T) {
 	}
 }
 
+func TestPathRunOnDisconnectCommandExited(t *testing.T) {
+	for _, ca := range []struct {
+		name     string
+		cmdstr   string
+		expected int
+	}{
+		{"failure", filepath.Join(t.TempDir(), "nonexistent"), 1},
+		{"success", "sh -c 'exit 0'", 0},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			logFile := filepath.Join(t.TempDir(), "log")
+
+			func() {
+				p, ok := newInstance(t, fmt.Sprintf("logDestinations: [file]\n"+
+					"logFile: %s\n"+
+					"rtmp: no\n"+
+					"hls: no\n"+
+					"webrtc: no\n"+
+					"runOnDisconnect: %s\n",
+					logFile,
+					ca.cmdstr,
+				))
+				require.Equal(t, true, ok)
+				defer p.Close()
+
+				conn, err := net.Dial("tcp", "localhost:8554")
+				require.NoError(t, err)
+				conn.Close()
+
+				time.Sleep(500 * time.Millisecond)
+			}()
+
+			// the hook is launched when the connection closes, and Close()
+			// waits for running hooks before shutting down the logger.
+			byts, err := os.ReadFile(logFile)
+			require.NoError(t, err)
+			log := string(byts)
+
+			require.NotContains(t, log, "%!")
+
+			// the hook is launched in both cases: without this, a zero count
+			// below would not tell a command that exited without error from a
+			// hook that never ran.
+			require.Equal(t, 1, strings.Count(log, "runOnDisconnect command launched"))
+
+			re := regexp.MustCompile(
+				`(?m)^\S+ \S+ INF \[RTSP\] \[conn \S+\] runOnDisconnect command exited: `)
+			require.Equal(t, ca.expected, len(re.FindAllString(log, -1)))
+		})
+	}
+}
+
 func TestPathRunOnAvailable(t *testing.T) {
 	onAvailable := filepath.Join(t.TempDir(), "on_available")
 	onUnavailable := filepath.Join(t.TempDir(), "on_unavailable")
@@ -493,15 +546,13 @@ func TestPathRunOnRead(t *testing.T) {
 							return
 						}
 						err2 := source.WritePacketRTP(media0, &rtp.Packet{
-							Header: rtp.Header{
-								Version:        2,
-								Marker:         true,
-								PayloadType:    96,
-								SequenceNumber: uint16(123 + i),
-								Timestamp:      uint32(45343 + i*90000),
-								SSRC:           563423,
-							},
-							Payload: []byte{5},
+							Version:        2,
+							Marker:         true,
+							PayloadType:    96,
+							SequenceNumber: uint16(123 + i),
+							Timestamp:      uint32(45343 + i*90000),
+							SSRC:           563423,
+							Payload:        []byte{5},
 						})
 						require.NoError(t, err2)
 						i++
@@ -594,15 +645,13 @@ func TestPathRunOnRead(t *testing.T) {
 					go func() {
 						for i := range uint16(3) {
 							err2 := source.WritePacketRTP(media0, &rtp.Packet{
-								Header: rtp.Header{
-									Version:        2,
-									Marker:         true,
-									PayloadType:    96,
-									SequenceNumber: 123 + i,
-									Timestamp:      45343 + uint32(i)*2*90000,
-									SSRC:           563423,
-								},
-								Payload: []byte{5},
+								Version:        2,
+								Marker:         true,
+								PayloadType:    96,
+								SequenceNumber: 123 + i,
+								Timestamp:      45343 + uint32(i)*2*90000,
+								SSRC:           563423,
+								Payload:        []byte{5},
 							})
 							require.NoError(t, err2)
 						}
@@ -725,15 +774,13 @@ func TestPathRunOnRecordSegment(t *testing.T) {
 
 		for i := range 4 {
 			err = source.WritePacketRTP(media0, &rtp.Packet{
-				Header: rtp.Header{
-					Version:        2,
-					Marker:         true,
-					PayloadType:    96,
-					SequenceNumber: 1123 + uint16(i),
-					Timestamp:      45343 + 90000*uint32(i),
-					SSRC:           563423,
-				},
-				Payload: []byte{5},
+				Version:        2,
+				Marker:         true,
+				PayloadType:    96,
+				SequenceNumber: 1123 + uint16(i),
+				Timestamp:      45343 + 90000*uint32(i),
+				SSRC:           563423,
+				Payload:        []byte{5},
 			})
 			require.NoError(t, err)
 		}
@@ -753,6 +800,90 @@ func TestPathRunOnRecordSegment(t *testing.T) {
 	require.True(t, strings.HasPrefix(fields[0], recordDir))
 	require.Equal(t, "3", fields[1])
 	require.Equal(t, "8554", fields[2])
+}
+
+func TestPathRunOnRecordSegmentCommandExited(t *testing.T) {
+	for _, ca := range []struct {
+		name     string
+		cmdstr   string
+		expected int
+	}{
+		{"failure", filepath.Join(t.TempDir(), "nonexistent"), 1},
+		{"success", "sh -c 'exit 0'", 0},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			logFile := filepath.Join(t.TempDir(), "log")
+			recordDir := t.TempDir()
+			var err error
+
+			func() {
+				p, ok := newInstance(t, fmt.Sprintf("logDestinations: [file]\n"+
+					"logFile: %s\n"+
+					"record: yes\n"+
+					"recordPath: %s\n"+
+					"paths:\n"+
+					"  test:\n"+
+					"    runOnRecordSegmentCreate: %s\n"+
+					"    runOnRecordSegmentComplete: %s\n",
+					logFile,
+					filepath.Join(recordDir, "%path/%Y-%m-%d_%H-%M-%S-%f"),
+					ca.cmdstr,
+					ca.cmdstr,
+				))
+				require.Equal(t, true, ok)
+				defer p.Close()
+
+				media0 := test.UniqueMediaH264()
+
+				source := gortsplib.Client{}
+
+				err = source.StartRecording(
+					"rtsp://localhost:8554/test",
+					&description.Session{Medias: []*description.Media{media0}})
+				require.NoError(t, err)
+				defer source.Close()
+
+				for i := range 4 {
+					err = source.WritePacketRTP(media0, &rtp.Packet{
+						Version:        2,
+						Marker:         true,
+						PayloadType:    96,
+						SequenceNumber: 1123 + uint16(i),
+						Timestamp:      45343 + 90000*uint32(i),
+						SSRC:           563423,
+						Payload:        []byte{5},
+					})
+					require.NoError(t, err)
+				}
+
+				time.Sleep(500 * time.Millisecond)
+			}()
+
+			// Close() waits for running hooks before shutting down the logger,
+			// and the file destination writes each entry without buffering.
+			byts, err := os.ReadFile(logFile)
+			require.NoError(t, err)
+			log := string(byts)
+
+			// a dropped format argument would still match the prefixes below,
+			// but it makes fmt write a %!v(MISSING) placeholder into the entry.
+			require.NotContains(t, log, "%!")
+
+			// both hooks are launched in both cases: without this, a zero count
+			// below would not tell a command that exited without error from a
+			// hook that never ran.
+			require.Equal(t, 1, strings.Count(log, "runOnRecordSegmentCreate command launched"))
+			require.Equal(t, 1, strings.Count(log, "runOnRecordSegmentComplete command launched"))
+
+			reCreate := regexp.MustCompile(
+				`(?m)^\S+ \S+ INF \[path test\] runOnRecordSegmentCreate command exited: `)
+			require.Equal(t, ca.expected, len(reCreate.FindAllString(log, -1)))
+
+			reComplete := regexp.MustCompile(
+				`(?m)^\S+ \S+ INF \[path test\] runOnRecordSegmentComplete command exited: `)
+			require.Equal(t, ca.expected, len(reComplete.FindAllString(log, -1)))
+		})
+	}
 }
 
 func TestPathMaxReaders(t *testing.T) {
@@ -824,15 +955,13 @@ func TestPathRecord(t *testing.T) {
 
 	for i := range 4 {
 		err = source.WritePacketRTP(media0, &rtp.Packet{
-			Header: rtp.Header{
-				Version:        2,
-				Marker:         true,
-				PayloadType:    96,
-				SequenceNumber: 1123 + uint16(i),
-				Timestamp:      45343 + 90000*uint32(i),
-				SSRC:           563423,
-			},
-			Payload: []byte{5},
+			Version:        2,
+			Marker:         true,
+			PayloadType:    96,
+			SequenceNumber: 1123 + uint16(i),
+			Timestamp:      45343 + 90000*uint32(i),
+			SSRC:           563423,
+			Payload:        []byte{5},
 		})
 		require.NoError(t, err)
 	}
@@ -861,15 +990,13 @@ func TestPathRecord(t *testing.T) {
 
 	for i := 4; i < 8; i++ {
 		err = source.WritePacketRTP(media0, &rtp.Packet{
-			Header: rtp.Header{
-				Version:        2,
-				Marker:         true,
-				PayloadType:    96,
-				SequenceNumber: 1123 + uint16(i),
-				Timestamp:      45343 + 90000*uint32(i),
-				SSRC:           563423,
-			},
-			Payload: []byte{5},
+			Version:        2,
+			Marker:         true,
+			PayloadType:    96,
+			SequenceNumber: 1123 + uint16(i),
+			Timestamp:      45343 + 90000*uint32(i),
+			SSRC:           563423,
+			Payload:        []byte{5},
 		})
 		require.NoError(t, err)
 	}
@@ -1079,28 +1206,24 @@ func TestPathOverridePublisher(t *testing.T) {
 				require.EqualError(t, err, "EOF")
 
 				err = s2.WritePacketRTP(medi, &rtp.Packet{
-					Header: rtp.Header{
-						Version:        0x02,
-						PayloadType:    96,
-						SequenceNumber: 57899,
-						Timestamp:      345234345,
-						SSRC:           978651231,
-						Marker:         true,
-					},
-					Payload: []byte{5, 15, 16, 17, 18},
+					Version:        0x02,
+					PayloadType:    96,
+					SequenceNumber: 57899,
+					Timestamp:      345234345,
+					SSRC:           978651231,
+					Marker:         true,
+					Payload:        []byte{5, 15, 16, 17, 18},
 				})
 				require.NoError(t, err)
 			} else {
 				err = s1.WritePacketRTP(medi, &rtp.Packet{
-					Header: rtp.Header{
-						Version:        0x02,
-						PayloadType:    96,
-						SequenceNumber: 57899,
-						Timestamp:      345234345,
-						SSRC:           978651231,
-						Marker:         true,
-					},
-					Payload: []byte{5, 11, 12, 13, 14},
+					Version:        0x02,
+					PayloadType:    96,
+					SequenceNumber: 57899,
+					Timestamp:      345234345,
+					SSRC:           978651231,
+					Marker:         true,
+					Payload:        []byte{5, 11, 12, 13, 14},
 				})
 				require.NoError(t, err)
 			}

@@ -1,26 +1,29 @@
 # PokeClip downstream line
 
 This is a fork of [bluenviron/mediamtx](https://github.com/bluenviron/mediamtx) that carries
-patches we need before upstream has merged them. It is a **waiting room, not a permanent divergence**:
-every patch here either has an upstream PR or has not been submitted yet, and
-is dropped from this line once upstream merges it.
+patches we need before they are part of an upstream release. It is a **waiting room, not a permanent divergence**:
+every patch here has an upstream PR, has not been submitted yet, or is merged upstream but not yet
+part of the release this line is based on, and is dropped from this line once the line moves to an
+upstream release that includes it.
 
 ## Branches
 
-| Branch         | Purpose                                                                                        |
-| -------------- | ---------------------------------------------------------------------------------------------- |
-| `main`         | Mirror of upstream. **Never commit here** — it stays fast-forwardable from upstream.           |
-| `pokeclip`     | Our line: upstream + patches not yet merged + the image workflow. Images are cut from here.    |
-| topic branches | Clean, upstream-submittable versions of individual patches (e.g. `always-available-recorded`). |
+| Branch         | Purpose                                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| `main`         | Mirror of upstream. **Never commit here** — it stays fast-forwardable from upstream.                        |
+| `pokeclip`     | Our line: upstream + patches not yet in an upstream release + the image workflow. Images are cut from here. |
+| topic branches | Clean, upstream-submittable versions of individual patches (e.g. `always-available-recorded`).              |
 
 ## What's currently in the line
 
-| Patch                                                                                     | Upstream                                                                            |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| fix data race between configuration reload and hook logging                               | [bluenviron/mediamtx#6206](https://github.com/bluenviron/mediamtx/pull/6206) (open) |
-| log the failure of every hook command                                                     | [bluenviron/mediamtx#6259](https://github.com/bluenviron/mediamtx/pull/6259) (open) |
-| route the output of hooks to the server log (new setting `logHookOutput`, off by default) | not submitted yet                                                                   |
-| make CertLoader.Close() wait for watch() to return                                        | [bluenviron/mediamtx#6261](https://github.com/bluenviron/mediamtx/pull/6261) (open) |
+| Patch                                                                                     | Upstream                                                                              |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| fix data race between configuration reload and hook logging                               | [bluenviron/mediamtx#6206](https://github.com/bluenviron/mediamtx/pull/6206) (open)   |
+| log the failure of every hook command                                                     | [bluenviron/mediamtx#6259](https://github.com/bluenviron/mediamtx/pull/6259) (open)   |
+| route the output of hooks to the server log (new setting `logHookOutput`, off by default) | not submitted yet                                                                     |
+| make CertLoader.Close() wait for watch() to return                                        | [bluenviron/mediamtx#6261](https://github.com/bluenviron/mediamtx/pull/6261) (open)   |
+| api: do not change passwords when their value is `"<redacted>"`                           | [bluenviron/mediamtx#6292](https://github.com/bluenviron/mediamtx/pull/6292) (merged) |
+| add srtPassphrase to users                                                                | not submitted yet                                                                     |
 
 ## Releasing an image
 
